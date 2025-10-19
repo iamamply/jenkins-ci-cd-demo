@@ -76,11 +76,10 @@ pipeline {
                 // G. รัน kubectl ในคอนเทนเนอร์ที่มีไบนารี kubectl
                 // หาก image Kaniko ไม่มี kubectl ให้เปลี่ยน 'kaniko' เป็นคอนเทนเนอร์อื่นที่มี (เช่น 'kubectl' หรือ 'jnlp' ถ้าติดตั้งแล้ว)
                 container('kaniko') { 
-                    // 2. สั่ง K8s ดึง Image ใหม่: 
-                    sh "kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}"
-                    
-                    // 3. รอให้ K8s อัปเดต Deployment เสร็จสมบูรณ์
-                    sh "kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s"
+                    sh '''
+                        kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}
+                        kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s
+                    '''
                 }
             }
         }
