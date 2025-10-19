@@ -1,5 +1,12 @@
 pipeline {
-    agent any
+    // agent any
+    agent {
+        kubernetes {
+            cloud 'kubernetes'
+            label 'jenkins-jenkins-agent' // ต้องตรงกับ Label ใน Pod Template ที่ตั้งค่าไว้
+        }
+    }
+
     environment {
         // !!! 1. แก้ไขตรงนี้เป็น Username Docker Hub ของคุณ !!!
         DOCKER_IMAGE = "iamamply@hotmail.com/ci-cd-app" 
