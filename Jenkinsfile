@@ -56,14 +56,14 @@ pipeline {
                         
                         // F. คำสั่ง Kaniko Build & Push
                         // --destination จะทำการ Push Image ขึ้น Registry ทันที
-                        sh """
+                        sh '''
                             /kaniko/executor \
                             --context=dir://$(pwd) \
                             --dockerfile=Dockerfile \
-                            --destination=${DOCKER_IMAGE}:${IMAGE_TAG} \
+                            --destination=''' + DOCKER_IMAGE + ''':''' + IMAGE_TAG + ''' \
                             --cleanup \
                             --cache=true
-                        """
+                        '''
                     }
                 }
             }
