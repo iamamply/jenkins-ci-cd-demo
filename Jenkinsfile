@@ -10,29 +10,12 @@ pipeline {
             steps { checkout scm }
         }
         
-        // stage('2. Build Docker Image') {
-        //     steps {
-        //         script {
-        //             // กำหนด Tag เป็นเวลาปัจจุบัน (ใช้เป็นเวอร์ชัน Image)
-        //             env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
-        //             sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
-        //         }
-        //     }
-        // }
-        
-        stage('2. Build and Push Docker Image (Kaniko)') {
+        stage('2. Build Docker Image') {
             steps {
                 script {
                     // กำหนด Tag เป็นเวลาปัจจุบัน (ใช้เป็นเวอร์ชัน Image)
                     env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
-                    
-                    // แทนที่ "docker build" ด้วย Kaniko Executor
-                    // Kaniko จะ Build Image จาก Dockerfile และ Push ไปยัง Destination โดยใช้ Credentials จาก Kubernetes Secret
-                    sh """
-                        /kaniko/executor --context=\$(pwd) \\
-                                         --dockerfile=Dockerfile \\
-                                         --destination=${DOCKER_IMAGE}:${IMAGE_TAG}
-                    """
+                    sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
                 }
             }
         }
