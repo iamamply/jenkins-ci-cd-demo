@@ -54,6 +54,7 @@ spec:
                             --destination=''' + DOCKER_IMAGE + ''':''' + IMAGE_TAG + ''' \
                             --cleanup \
                             --cache=true
+                            --dockerconfig=/kaniko/.docker/.dockerconfigjson
                         '''
                     }
                 }
