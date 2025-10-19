@@ -1,14 +1,44 @@
 pipeline {
-    // agent any
     agent {
         kubernetes {
             cloud 'kubernetes'
-            label 'jenkins-jenkins-agent' // ต้องตรงกับ Label ใน Pod Template ที่ตั้งค่าไว้
+            // ใช้ Label เพื่อให้ K8s สร้าง Pod Agent ใหม่
+            label 'kaniko-builder' 
+
+            // A. เพิ่ม Kaniko Container เข้าไปใน Pod Agent
+            containerTemplate {
+                name 'kaniko'
+                // ใช้ image Kaniko ที่มีเครื่องมือ Build
+                image 'gcr.io/kaniko-project/executor:v1.16.0-debug' 
+                command 'cat' // คำสั่งพื้นฐานให้คอนเทนเนอร์รันอยู่
+                tty true
+                // B. Mount Volume สำหรับไฟล์ .docker/config.json
+                volumeMounts {
+                    mountPath '/kaniko/.docker'
+                    name 'kaniko-secret-volume'
+                }
+            }
+
+            // C. เพิ่ม Volume ที่อ้างถึง Secret 'regcred' ที่คุณสร้างเมื่อสักครู่
+            volumes {
+                secretVolume {
+                    secretName 'regcred' // *** ชื่อ Secret ที่คุณสร้าง: regcred ***
+                    mountPath '/kaniko/.docker'
+                    defaultMode 0400
+                    volumeName 'kaniko-secret-volume'
+                }
+                // D. (Optional) เพิ่ม Volume สำหรับ kubectl หาก image Kaniko ไม่มี
+                configMapVolume {
+                    configMapName 'kubectl-config' // สมมติว่ามี ConfigMap ที่มี kubectl
+                    mountPath '/usr/local/bin/kubectl' // Mount ไบนารี kubectl เข้าไป
+                    volumeName 'kubectl-bin'
+                }
+            }
         }
     }
 
     environment {
-        // !!! 1. แก้ไขตรงนี้เป็น Username Docker Hub ของคุณ !!!
+        // ใช้ ENV เดิม
         DOCKER_IMAGE = "iamamply@hotmail.com/ci-cd-app" 
     }
 
@@ -17,33 +47,41 @@ pipeline {
             steps { checkout scm }
         }
         
-        stage('2. Build Docker Image') {
+        stage('2. Build and Push Docker Image (Kaniko)') {
             steps {
-                script {
-                    // กำหนด Tag เป็นเวลาปัจจุบัน (ใช้เป็นเวอร์ชัน Image)
-                    env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
-                    sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
-                }
-            }
-        }
-
-        stage('3. Push Image to Docker Hub') {
-            steps {
-                // ใช้ ID 'docker-hub-credential' ที่เราสร้างไว้ใน Jenkins
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
-                    sh "echo \$DOCKER_PASSWORD | docker login -u \$DOCKER_USER --password-stdin"
-                    sh "docker push ${DOCKER_IMAGE}:${IMAGE_TAG}"
+                container('kaniko') { // E. สั่งให้รันในคอนเทนเนอร์ 'kaniko'
+                    script {
+                        // กำหนด Tag เป็นเวลาปัจจุบัน
+                        env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
+                        
+                        // F. คำสั่ง Kaniko Build & Push
+                        // --destination จะทำการ Push Image ขึ้น Registry ทันที
+                        sh """
+                            /kaniko/executor \
+                            --context=dir://$(pwd) \
+                            --dockerfile=Dockerfile \
+                            --destination=${DOCKER_IMAGE}:${IMAGE_TAG} \
+                            --cleanup \
+                            --cache=true
+                        """
+                    }
                 }
             }
         }
         
+        // Stage 3. ถูกรวมเข้ากับ Stage 2 แล้ว
+        
         stage('4. Deploy to Kubernetes') {
             steps {
-                // 2. สั่ง K8s ดึง Image ใหม่: นี่คือ Continuous Delivery (CD)
-                sh "kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}"
-                
-                // 3. รอให้ K8s อัปเดต Deployment เสร็จสมบูรณ์
-                sh "kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s"
+                // G. รัน kubectl ในคอนเทนเนอร์ที่มีไบนารี kubectl
+                // หาก image Kaniko ไม่มี kubectl ให้เปลี่ยน 'kaniko' เป็นคอนเทนเนอร์อื่นที่มี (เช่น 'kubectl' หรือ 'jnlp' ถ้าติดตั้งแล้ว)
+                container('kaniko') { 
+                    // 2. สั่ง K8s ดึง Image ใหม่: 
+                    sh "kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}"
+                    
+                    // 3. รอให้ K8s อัปเดต Deployment เสร็จสมบูรณ์
+                    sh "kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s"
+                }
             }
         }
     }
