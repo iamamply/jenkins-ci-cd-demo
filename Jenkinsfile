@@ -30,7 +30,7 @@ spec:
 
     environment {
         // !!! ตรวจสอบว่า DOCKER_IMAGE ถูกต้อง !!!
-        DOCKER_IMAGE = "iamamply@hotmail.com/ci-cd-app" 
+        DOCKER_IMAGE = "iamamply/ci-cd-app" 
     }
 
     stages {
