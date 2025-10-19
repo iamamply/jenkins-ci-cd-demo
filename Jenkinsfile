@@ -4,41 +4,32 @@ pipeline {
             cloud 'kubernetes'
             // ใช้ Label เพื่อให้ K8s สร้าง Pod Agent ใหม่
             label 'kaniko-builder' 
-
-            // A. เพิ่ม Kaniko Container เข้าไปใน Pod Agent
-            containerTemplate {
-                name 'kaniko'
-                // ใช้ image Kaniko ที่มีเครื่องมือ Build
-                image 'gcr.io/kaniko-project/executor:v1.16.0-debug' 
-                command 'cat' // คำสั่งพื้นฐานให้คอนเทนเนอร์รันอยู่
-                tty true
-                // B. Mount Volume สำหรับไฟล์ .docker/config.json
-                volumeMounts {
-                    mountPath '/kaniko/.docker'
-                    name 'kaniko-secret-volume'
-                }
-            }
-
-            // C. เพิ่ม Volume ที่อ้างถึง Secret 'regcred' ที่คุณสร้างเมื่อสักครู่
-            volumes {
-                secretVolume {
-                    secretName 'regcred' // *** ชื่อ Secret ที่คุณสร้าง: regcred ***
-                    mountPath '/kaniko/.docker'
-                    defaultMode 0400
-                    volumeName 'kaniko-secret-volume'
-                }
-                // D. (Optional) เพิ่ม Volume สำหรับ kubectl หาก image Kaniko ไม่มี
-                configMapVolume {
-                    configMapName 'kubectl-config' // สมมติว่ามี ConfigMap ที่มี kubectl
-                    mountPath '/usr/local/bin/kubectl' // Mount ไบนารี kubectl เข้าไป
-                    volumeName 'kubectl-bin'
-                }
-            }
+            
+            // ใช้ YAML เพื่อกำหนดทั้ง Container (kaniko) และ Volume (regcred Secret)
+            // ซึ่งเป็นวิธีที่ Jenkins Kubernetes Plugin ยอมรับ
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:v1.16.0-debug
+    command: ["/bin/sh", "-c", "cat"]
+    tty: true
+    volumeMounts:
+    - name: kaniko-secret-volume
+      mountPath: /kaniko/.docker
+  volumes:
+  - name: kaniko-secret-volume
+    secret:
+      secretName: regcred  # ต้องตรงกับชื่อ Secret ที่คุณสร้างไว้
+      defaultMode: 256  # 0400
+'''
         }
     }
 
     environment {
-        // ใช้ ENV เดิม
+        // !!! ตรวจสอบว่า DOCKER_IMAGE ถูกต้อง !!!
         DOCKER_IMAGE = "iamamply@hotmail.com/ci-cd-app" 
     }
 
@@ -49,13 +40,13 @@ pipeline {
         
         stage('2. Build and Push Docker Image (Kaniko)') {
             steps {
-                container('kaniko') { // E. สั่งให้รันในคอนเทนเนอร์ 'kaniko'
+                container('kaniko') { // สั่งให้รันในคอนเทนเนอร์ 'kaniko'
                     script {
                         // กำหนด Tag เป็นเวลาปัจจุบัน
                         env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
                         
-                        // F. คำสั่ง Kaniko Build & Push
-                        // --destination จะทำการ Push Image ขึ้น Registry ทันที
+                        // *** คำสั่ง Kaniko Build & Push ***
+                        // ใช้ Triple Single Quotes (''') และการเชื่อมสตริง (+) เพื่อเลี่ยง Groovy Error
                         sh '''
                             /kaniko/executor \
                             --context=dir://$(pwd) \
@@ -69,13 +60,13 @@ pipeline {
             }
         }
         
-        // Stage 3. ถูกรวมเข้ากับ Stage 2 แล้ว
-        
         stage('4. Deploy to Kubernetes') {
             steps {
-                // G. รัน kubectl ในคอนเทนเนอร์ที่มีไบนารี kubectl
-                // หาก image Kaniko ไม่มี kubectl ให้เปลี่ยน 'kaniko' เป็นคอนเทนเนอร์อื่นที่มี (เช่น 'kubectl' หรือ 'jnlp' ถ้าติดตั้งแล้ว)
+                // *** ข้อสันนิษฐาน: Image Kaniko มี kubectl ติดตั้งอยู่ ***
+                // ถ้าไม่มี จะเกิด error 'kubectl: not found'
                 container('kaniko') { 
+                    // ใช้ Triple Single Quotes (''') เพื่อป้องกัน Groovy Error (Error ที่คุณเจอ)
+                    // Groovy จะตีความตัวแปร Environment ${} ภายใน ''' '''
                     sh '''
                         kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}
                         kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s
