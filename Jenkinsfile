@@ -85,7 +85,15 @@ spec:
     stage('3. Deploy to Kubernetes') {
         steps {
           script {
+
+            def DOCKER_IMAGE = "iamamply/jenkins-ci-cd-demo" // เปลี่ยนเป็นชื่อ Docker Hub Repository ของคุณ
+            def IMAGE_TAG = "v${env.BUILD_NUMBER}"
+            def FULL_IMAGE_NAME = "${DOCKER_IMAGE}:${IMAGE_TAG}"
+
             echo "stage 3!"
+            echo "Updating deployment.yaml with image: ${FULL_IMAGE_NAME}"
+
+            sh "sed -i 's|REPLACE_IMAGE_NAME_AND_TAG|${FULL_IMAGE_NAME}|g' k8s/deployment.yaml"
           }
         }
     } 
