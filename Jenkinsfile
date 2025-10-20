@@ -42,18 +42,13 @@ spec:
                         def FULL_IMAGE = "${env.DOCKER_IMAGE}:${env.IMAGE_TAG}"
 
                         withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
-                            sh """
-                            # สร้าง config.json ใน Home Directory ของ BuildKit User
-                            mkdir -p /home/user/.docker
-                            echo '{"auths":{"index.docker.io/v1/": {"username":"${DOCKER_USER}", "password":"${DOCKER_PASSWORD}"}}}' > /home/user/.docker/config.json
-                            
+                        sh """
                             echo "Starting BuildKit build for: ${FULL_IMAGE}"
-                            
-                            # 2. คำสั่ง Build และ Push
+
                             /usr/bin/buildctl-daemonless.sh build \\
                                 --frontend=dockerfile.v0 \\
-                                --local context=. \\
-                                --local dockerfile=Dockerfile \\
+                                --local context=\$WORKSPACE \\
+                                --local dockerfile=\$WORKSPACE/Dockerfile \\
                                 --progress=plain \\
                                 \\
                                 --output type=image,name=${FULL_IMAGE},push=true \\
