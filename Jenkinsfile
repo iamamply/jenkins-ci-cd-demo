@@ -50,26 +50,26 @@ spec:
                     script {
                         env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
                         def FULL_IMAGE = "${env.DOCKER_IMAGE}:${env.IMAGE_TAG}"
-
-                        // 5. แก้ไข Insecure Warning โดยใช้ triple single quotes (ไม่จำเป็นต้องแก้ไข แต่ช่วยลด warning)
+                        
                         withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
+                            // *** เปลี่ยนเป็น Triple Single Quotes ทั้งหมด และใช้ $DOCKER_USER/$DOCKER_PASSWORD โดยตรงใน Bash ***
                             sh '''
-                            mkdir -p /home/user/.docker
-                            echo \'{"auths":{"index.docker.io/v1/": {"username":"$DOCKER_USER", "password":"$DOCKER_PASSWORD"}}}\' > /home/user/.docker/config.json
-                            
-                            echo "Starting BuildKit build for: ''' + FULL_IMAGE + '''"
-                            
-                            # 6. ใช้ . (dot) และ Dockerfile ตามปกติ เพราะ Working Directory ถูกต้องแล้ว
-                            /usr/bin/buildctl-daemonless.sh build \\
-                                --frontend=dockerfile.v0 \\
-                                --local context=. \\ 
-                                --local dockerfile=Dockerfile \\
-                                --progress=plain \\
-                                \\
-                                --output type=image,name=''' + FULL_IMAGE + ''',push=true \\
-                                \\
-                                --import-cache type=registry,ref=''' + env.CACHE_REPO + ''':latest \\
-                                --export-cache type=registry,ref=''' + env.CACHE_REPO + ''':latest
+                                mkdir -p /home/user/.docker
+                                # ใช้ Bash Shell variable ในการสร้าง config.json
+                                echo '{"auths":{"index.docker.io/v1/": {"username":"$DOCKER_USER", "password":"$DOCKER_PASSWORD"}}}' > /home/user/.docker/config.json
+                                
+                                echo "Starting BuildKit build for: ''' + FULL_IMAGE + '''"
+                                
+                                /usr/bin/buildctl-daemonless.sh build \\
+                                    --frontend=dockerfile.v0 \\
+                                    --local context=. \\ 
+                                    --local dockerfile=Dockerfile \\
+                                    --progress=plain \\
+                                    \\
+                                    --output type=image,name=''' + FULL_IMAGE + ''',push=true \\
+                                    \\
+                                    --import-cache type=registry,ref=''' + env.CACHE_REPO + ''':latest \\
+                                    --export-cache type=registry,ref=''' + env.CACHE_REPO + ''':latest
                             '''
                         }
                     }
