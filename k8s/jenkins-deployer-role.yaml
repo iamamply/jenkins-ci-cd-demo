@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-deployer
+  namespace: jenkins # <<--- ต้องอยู่ใน Namespace เดียวกับ Jenkins Agent
+rules:
+- apiGroups: [""] # "" หมายถึง Core API Group (สำหรับ Service)
+  resources: ["services"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"] # สำหรับ Deployment
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""] # สำหรับ Pods (ถ้าจำเป็นต้องดูสถานะ)
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
