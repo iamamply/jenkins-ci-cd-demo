@@ -1,6 +1,7 @@
 pipeline {
     agent {
         kubernetes {
+            // *** ใช้ # สำหรับ comment ใน YAML เท่านั้น และคงส่วนที่จำเป็นไว้ ***
             yaml """
 apiVersion: v1
 kind: Pod
@@ -8,23 +9,17 @@ spec:
   containers:
   - name: buildkit-agent
     image: "alpine/git:latest" 
-    // workingDir: /home/jenkins/agent/workspace/${JOB_NAME} 
-    // command: ["/bin/sh", "-c", "cat"]
-    // tty: true
-  //   securityContext:
-  //     runAsUser: 1000 
-  //     runAsGroup: 1000
-  //   volumeMounts:
-  //   - name: buildkit-cache
-  //     mountPath: /var/lib/buildkit
-  //   - name: workspace-volume 
-  //     mountPath: /home/jenkins/agent/workspace 
+    workingDir: /home/jenkins/agent/workspace/${JOB_NAME}
+    command: ["/bin/sh", "-c", "cat"]
+    tty: true
+    # เราตัด securityContext ออกเพื่อทดสอบการเชื่อมต่อ
+    volumeMounts:
+    - name: workspace-volume 
+      mountPath: /home/jenkins/agent/workspace 
   
-  // volumes:
-  // - name: buildkit-cache
-  //   emptyDir: {}
-  // - name: workspace-volume
-  //   emptyDir: {}
+  volumes:
+  - name: workspace-volume
+    emptyDir: {}
 """
         }
     }
@@ -37,10 +32,9 @@ spec:
         stage('1. Checkout & Shell Test') {
             steps { 
                 container(env.CONTAINER_NAME) {
-                    // ทดสอบการเชื่อมต่อ Shell โดยการรันคำสั่งที่ซับซ้อนระดับกลาง
-                    sh 'echo "Starting SCM Checkout on BuildKit Agent..."'
+                    sh 'echo "Starting SCM Checkout on ALPINE Agent..."'
                     checkout scm 
-                    sh 'ls -al' // ควรแสดงไฟล์ที่ checkout มา
+                    sh 'ls -al'
                 }
             }
         }
