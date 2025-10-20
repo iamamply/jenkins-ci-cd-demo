@@ -41,7 +41,10 @@ spec:
     stages {
         stage('1. Checkout Code') {
             steps {
-                echo '1. Checkout Code'
+                container(env.CONTAINER_NAME) {
+                    checkout scm 
+                    sh 'echo "Stage 1: Checkout complete. Files exist." '
+                }
             }
         }
     }
