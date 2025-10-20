@@ -90,10 +90,16 @@ spec:
             def IMAGE_TAG = "v${env.BUILD_NUMBER}"
             def FULL_IMAGE_NAME = "${DOCKER_IMAGE}:${IMAGE_TAG}"
 
-            echo "stage 3!"
+            // echo "stage 3!"
             echo "Updating deployment.yaml with image: ${FULL_IMAGE_NAME}"
 
             sh "sed -i 's|REPLACE_IMAGE_NAME_AND_TAG|${FULL_IMAGE_NAME}|g' k8s/deployment.yaml"
+
+            echo "Applying Kubernetes manifests..."
+            sh 'kubectl apply -f k8s/service.yaml'
+            sh 'kubectl apply -f k8s/deployment.yaml'
+                
+            echo "Deployment successfully triggered!"
           }
         }
     } 
