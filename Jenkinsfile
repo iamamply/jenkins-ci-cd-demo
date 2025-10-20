@@ -1,5 +1,4 @@
 pipeline {
-    // agent any
     agent {
         kubernetes {
             // โค้ด YAML ที่มี BuildKit Agent และ Volume ที่ถูกต้อง
@@ -33,27 +32,14 @@ spec:
 
     environment {
         CONTAINER_NAME = "buildkit-agent" 
+        DOCKER_IMAGE = "iamamply/ci-cd-app" 
+        CACHE_REPO = "iamamply/ci-cd-app-cache" 
     }
 
     stages {
-        stage('1. Agent Connectivity Test') {
-            steps { 
-                sh 'echo "stage 1"'
-                // container(env.CONTAINER_NAME) {
-                //     sh 'echo "Agent Pod (BuildKit image) is connected." '
-                //     // sh 'id' // ควรเป็น uid=1000
-                // }
-            }
-        }
-        
-        stage('2. SCM Checkout Test') {
-            steps {
-                sh 'echo "stage 2"'
-                // container(env.CONTAINER_NAME) {
-                //     // checkout scm 
-                //     // sh 'ls -al' // ต้องเห็น Dockerfile
-                // }
-            }
+        stage('1. Checkout Code') {
+            // *** 4. ทำ Checkout ใน Container ที่เป็น BuildKit (เพื่อให้ User 1000 เป็นเจ้าของไฟล์) ***
+            steps { container(env.CONTAINER_NAME) { checkout scm } }
         }
     }
 }
