@@ -61,8 +61,7 @@ spec:
                 }
             }
         }
-    }
-        
+           
         stage('3. Deploy to Kubernetes') {
             // หากไม่มี kubectl ต้องเปลี่ยน Container/Image ที่นี่
             // steps { container(env.CONTAINER_NAME) { 
