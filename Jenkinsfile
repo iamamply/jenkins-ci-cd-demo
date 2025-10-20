@@ -8,6 +8,7 @@ spec:
   containers:
   - name: buildkit-agent
     image: "moby/buildkit:rootless" 
+    workingDir: /home/user/workspace
     command: ["/bin/sh", "-c", "cat"]
     tty: true
     securityContext:
@@ -16,8 +17,12 @@ spec:
     volumeMounts:
     - name: buildkit-cache-volume
       mountPath: /var/lib/buildkit
+    - name: workspace-volume 
+      mountPath: /home/user/workspace 
   volumes:
   - name: buildkit-cache-volume
+    emptyDir: {}
+  - name: workspace-volume
     emptyDir: {}
 '''
         }
@@ -26,7 +31,7 @@ spec:
     environment {
         CONTAINER_NAME = "buildkit-agent" 
         DOCKER_IMAGE = "iamamply/ci-cd-app" 
-        CACHE_REPO = "iamamply/ci-cd-app-cache"
+        CACHE_REPO = "iamamply/ci-cd-app-cache" 
     }
 
     stages {
@@ -42,13 +47,16 @@ spec:
                         def FULL_IMAGE = "${env.DOCKER_IMAGE}:${env.IMAGE_TAG}"
 
                         withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
-                        sh """
+                            sh """
+                            mkdir -p /home/user/.docker
+                            echo '{"auths":{"index.docker.io/v1/": {"username":"${DOCKER_USER}", "password":"${DOCKER_PASSWORD}"}}}' > /home/user/.docker/config.json
+                            
                             echo "Starting BuildKit build for: ${FULL_IMAGE}"
-
+                            
                             /usr/bin/buildctl-daemonless.sh build \\
                                 --frontend=dockerfile.v0 \\
-                                --local context=\$WORKSPACE \\
-                                --local dockerfile=\$WORKSPACE/Dockerfile \\
+                                --local context=. \\ 
+                                --local dockerfile=Dockerfile \\
                                 --progress=plain \\
                                 \\
                                 --output type=image,name=${FULL_IMAGE},push=true \\
@@ -63,12 +71,10 @@ spec:
         }
         
         stage('3. Deploy to Kubernetes') {
-            steps {
-                container(env.CONTAINER_NAME) {
-                    sh "kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}"
-                    sh "kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s"
-                }
-            }
+            steps { container(env.CONTAINER_NAME) { 
+                sh "kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}"
+                sh "kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s"
+            } }
         }
     }
 }
