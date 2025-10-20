@@ -38,11 +38,11 @@ spec:
     stages {
         stage('1. Agent Connectivity Test') {
             steps { 
-                // sh 'echo "stage 1"'
-                container(env.CONTAINER_NAME) {
-                    sh 'echo "Agent Pod (BuildKit image) is connected." '
-                    // sh 'id' // ควรเป็น uid=1000
-                }
+                sh 'echo "stage 1"'
+                // container(env.CONTAINER_NAME) {
+                //     sh 'echo "Agent Pod (BuildKit image) is connected." '
+                //     // sh 'id' // ควรเป็น uid=1000
+                // }
             }
         }
         
