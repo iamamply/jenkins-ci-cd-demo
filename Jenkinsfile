@@ -32,6 +32,12 @@ spec:
         }
     }
 
+    environment {
+        CONTAINER_NAME = "buildkit-agent" 
+        DOCKER_IMAGE = "iamamply/ci-cd-app" 
+        CACHE_REPO = "iamamply/ci-cd-app-cache" 
+    }
+    
     stages {
         stage('1. Checkout Code') {
             steps {
