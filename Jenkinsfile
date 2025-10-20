@@ -43,7 +43,7 @@ spec:
             steps {
                 container(env.CONTAINER_NAME) {
                     checkout scm 
-                    sh 'echo "Stage 1: Checkout complete. Files exist." '
+                    // sh 'echo "Stage 1: Checkout complete. Files exist." '
                 }
             }
         }
