@@ -55,9 +55,6 @@ spec:
                         withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
                             sh '''
                             mkdir -p /home/user/.docker
-                            echo \'{"auths":{"index.docker.io/v1/": {"username":"$DOCKER_USER", "password":"$DOCKER_PASSWORD"}}}\' > /home/user/.docker/config.json
-                            
-                            echo "Starting BuildKit build for: ''' + FULL_IMAGE + '''"
                             
                             # 6. ใช้ . (dot) และ Dockerfile ตามปกติ เพราะ Working Directory ถูกต้องแล้ว
                             /usr/bin/buildctl-daemonless.sh build \\
