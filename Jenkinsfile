@@ -51,13 +51,13 @@ spec:
                     // คำนวณ TAG ใน Groovy แต่ใช้แค่ใน Shell
                     env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
                     
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
-                        sh 'FULL_IMAGE="' + env.DOCKER_IMAGE + ':' + env.IMAGE_TAG + '"\n' +
-                           'CACHE_REPO="' + env.CACHE_REPO + ':latest"\n' +
-                           'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin\n' +
-                           'echo "Starting BuildKit build for: $FULL_IMAGE"\n' +
-                           '/usr/bin/buildctl-daemonless.sh build --frontend=dockerfile.v0 --local context=. --local dockerfile=Dockerfile --progress=plain --output type=image,name=$FULL_IMAGE,push=true --import-cache type=registry,ref=$CACHE_REPO --export-cache type=registry,ref=$CACHE_REPO'
-                    }
+                    // withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
+                    //     sh 'FULL_IMAGE="' + env.DOCKER_IMAGE + ':' + env.IMAGE_TAG + '"\n' +
+                    //        'CACHE_REPO="' + env.CACHE_REPO + ':latest"\n' +
+                    //        'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin\n' +
+                    //        'echo "Starting BuildKit build for: $FULL_IMAGE"\n' +
+                    //        '/usr/bin/buildctl-daemonless.sh build --frontend=dockerfile.v0 --local context=. --local dockerfile=Dockerfile --progress=plain --output type=image,name=$FULL_IMAGE,push=true --import-cache type=registry,ref=$CACHE_REPO --export-cache type=registry,ref=$CACHE_REPO'
+                    // }
                 }
             }
         }
@@ -65,10 +65,10 @@ spec:
         
         stage('3. Deploy to Kubernetes') {
             // หากไม่มี kubectl ต้องเปลี่ยน Container/Image ที่นี่
-            steps { container(env.CONTAINER_NAME) { 
-                sh "kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}"
-                sh "kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s"
-            } }
+            // steps { container(env.CONTAINER_NAME) { 
+            //     sh "kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}"
+            //     sh "kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s"
+            // } }
         }
     }
 }
