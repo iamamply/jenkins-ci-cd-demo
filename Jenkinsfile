@@ -44,44 +44,24 @@ spec:
             steps { container(env.CONTAINER_NAME) { checkout scm } }
         }
         
-        stage('2. Build & Push Docker Image (BuildKit)') {
-            steps {
-                container(env.CONTAINER_NAME) {
-                    script {
-                        env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
-                        def FULL_IMAGE = "${env.DOCKER_IMAGE}:${env.IMAGE_TAG}"
-                        
-                        withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
-                            sh '''
-                                # ใช้ Bash Shell variable ในการสร้าง config.json
-                                # Groovy จะไม่เข้ามาแทรกแซงตรงนี้แล้ว เพราะใช้ Triple Single Quotes
-                                mkdir -p /home/user/.docker
-                                echo '{"auths":{"index.docker.io/v1/": {"username":"$DOCKER_USER", "password":"$DOCKER_PASSWORD"}}}\' > /home/user/.docker/config.json
-                            '''
-                            
-                            // **ส่วน Buildctl: ใช้ Groovy Concatenation เพื่อหลีกเลี่ยง Groovy Interpolation**
-                            sh """
-                                FULL_IMAGE="${env.FULL_IMAGE}"
-                                CACHE_REPO="${env.CACHE_REPO}"
-                                
-                                echo "Starting BuildKit build for: \${FULL_IMAGE}"
-                                
-                                /usr/bin/buildctl-daemonless.sh build \\
-                                    --frontend=dockerfile.v0 \\
-                                    --local context=. \\ 
-                                    --local dockerfile=Dockerfile \\
-                                    --progress=plain \\
-                                    \\
-                                    --output type=image,name=\${FULL_IMAGE},push=true \\
-                                    \\
-                                    --import-cache type=registry,ref=\${CACHE_REPO}:latest \\
-                                    --export-cache type=registry,ref=\${CACHE_REPO}:latest
-                            """
-                        }
+    stage('2. Build & Push Docker Image (BuildKit)') {
+        steps {
+            container(env.CONTAINER_NAME) {
+                script {
+                    // คำนวณ TAG ใน Groovy แต่ใช้แค่ใน Shell
+                    env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
+                    
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
+                        sh 'FULL_IMAGE="' + env.DOCKER_IMAGE + ':' + env.IMAGE_TAG + '"\n' +
+                           'CACHE_REPO="' + env.CACHE_REPO + ':latest"\n' +
+                           'echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin\n' +
+                           'echo "Starting BuildKit build for: $FULL_IMAGE"\n' +
+                           '/usr/bin/buildctl-daemonless.sh build --frontend=dockerfile.v0 --local context=. --local dockerfile=Dockerfile --progress=plain --output type=image,name=$FULL_IMAGE,push=true --import-cache type=registry,ref=$CACHE_REPO --export-cache type=registry,ref=$CACHE_REPO'
                     }
                 }
             }
         }
+    }
         
         stage('3. Deploy to Kubernetes') {
             // หากไม่มี kubectl ต้องเปลี่ยน Container/Image ที่นี่
