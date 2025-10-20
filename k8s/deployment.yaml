@@ -17,6 +17,6 @@ spec:
       containers:
       - name: demo-app-container
         # *** ตำแหน่ง Placeholder ที่ Jenkins Pipeline จะมาแก้ไข ***
-        image: iamamply/jenkins-ci-cd-demo:v36 
+        image: REPLACE_IMAGE_NAME_AND_TAG
         ports:
         - containerPort: 8080 # Port ที่แอปพลิเคชันคุณเปิดอยู่
