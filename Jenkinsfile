@@ -42,10 +42,10 @@ spec:
             steps { container(env.CONTAINER_NAME) { checkout scm } }
         }
 
-        // stage('2. Build & Push Docker Image (BuildKit)') {
-        //     steps {
-        //         container(env.CONTAINER_NAME) {
-        //     }
-        // }
+        stage('2. Build & Push Docker Image (BuildKit)') {
+            steps {
+                container(env.CONTAINER_NAME) {
+            }
+        }
     }
 }
