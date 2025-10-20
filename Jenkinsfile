@@ -41,5 +41,11 @@ spec:
             // *** 4. ทำ Checkout ใน Container ที่เป็น BuildKit (เพื่อให้ User 1000 เป็นเจ้าของไฟล์) ***
             steps { container(env.CONTAINER_NAME) { checkout scm } }
         }
+
+        // stage('2. Build & Push Docker Image (BuildKit)') {
+        //     steps {
+        //         container(env.CONTAINER_NAME) {
+        //     }
+        // }
     }
 }
