@@ -40,46 +40,16 @@ spec:
 
     stages {
         stage('1. Checkout Code') {
-            // *** 4. ทำ Checkout ใน Container ที่เป็น BuildKit (เพื่อให้ User 1000 เป็นเจ้าของไฟล์) ***
-            steps { container(env.CONTAINER_NAME) { checkout scm } }
-        }
-        
-        stage('2. Build & Push Docker Image (BuildKit)') {
-            steps {
+            steps { 
                 container(env.CONTAINER_NAME) {
-                    script {
-                        env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
-                        def FULL_IMAGE = "${env.DOCKER_IMAGE}:${env.IMAGE_TAG}"
-
-                        // 5. แก้ไข Insecure Warning โดยใช้ triple single quotes (ไม่จำเป็นต้องแก้ไข แต่ช่วยลด warning)
-                        withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
-                            sh '''
-                            mkdir -p /home/user/.docker
-                            
-                            # 6. ใช้ . (dot) และ Dockerfile ตามปกติ เพราะ Working Directory ถูกต้องแล้ว
-                            /usr/bin/buildctl-daemonless.sh build \\
-                                --frontend=dockerfile.v0 \\
-                                --local context=. \\ 
-                                --local dockerfile=Dockerfile \\
-                                --progress=plain \\
-                                \\
-                                --output type=image,name=''' + FULL_IMAGE + ''',push=true \\
-                                \\
-                                --import-cache type=registry,ref=''' + env.CACHE_REPO + ''':latest \\
-                                --export-cache type=registry,ref=''' + env.CACHE_REPO + ''':latest
-                            '''
-                        }
-                    }
+                    // ใช้ Groovy echo แทน sh 'echo' 
+                    // แต่วิธีนี้ไม่สามารถรันคำสั่ง Shell ได้จริง
+                    echo "Stage 1: Checkout complete. Files exist." 
+                    
+                    // ต้องลอง: ใช้ sh แบบไม่มีตัวแปร
+                    sh 'ls -al' // คำสั่งนี้ยังจำเป็นต้องใช้ sh
                 }
             }
-        }
-        
-        stage('3. Deploy to Kubernetes') {
-            // หากไม่มี kubectl ต้องเปลี่ยน Container/Image ที่นี่
-            steps { container(env.CONTAINER_NAME) { 
-                sh "kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}"
-                sh "kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s"
-            } }
         }
     }
 }
