@@ -1,23 +1,39 @@
 pipeline {
     agent {
         kubernetes {
-            // ใช้ Image พื้นฐานที่มี shell (เช่น /bin/sh) และเครื่องมือพื้นฐาน
-            // เรากำลังทดสอบ Agent Pod โดยไม่ใช้ BuildKit/Rootless Environment
+            // *** เพิ่ม BuildKit Agent Template ***
             yaml '''
 apiVersion: v1
 kind: Pod
 spec:
   containers:
-  - name: test-agent
-    image: "alpine/git:latest" 
+  - name: buildkit-agent
+    image: "moby/buildkit:rootless" 
+    workingDir: /home/jenkins/agent/workspace/${JOB_NAME} 
     command: ["/bin/sh", "-c", "cat"]
     tty: true
+    securityContext:
+      runAsUser: 1000 
+      runAsGroup: 1000
+    volumeMounts:
+    - name: buildkit-cache-volume
+      mountPath: /var/lib/buildkit
+    - name: workspace-volume 
+      mountPath: /home/jenkins/agent/workspace 
+  
+  volumes:
+  - name: buildkit-cache-volume
+    emptyDir: {}
+  - name: workspace-volume
+    emptyDir: {}
 '''
         }
     }
 
     environment {
-        CONTAINER_NAME = "test-agent" 
+        // อัปเดตชื่อ Container เป็น BuildKit
+        CONTAINER_NAME = "buildkit-agent" 
+        DOCKER_IMAGE = "iamamply/ci-cd-app" // เพิ่มกลับมา แต่ยังไม่ได้ใช้
     }
 
     stages {
@@ -31,12 +47,16 @@ spec:
             }
         }
         
-        stage('2. Basic Shell Test') {
+        stage('2. BuildKit Environment Test') {
             steps {
                 container(env.CONTAINER_NAME) {
-                    sh 'echo "Agent Container is running simple shell commands."'
-                    sh 'apk add --no-cache curl' // ลองติดตั้ง Package เพื่อยืนยันสิทธิ์
-                    sh 'env' // ดู Environment Variables ทั้งหมด
+                    // *** ทดสอบว่า BuildKit binary มีอยู่และ Working Directory ถูกต้อง ***
+                    sh 'echo "Current Working Directory is:"'
+                    sh 'pwd' 
+                    sh 'echo "Running BuildKit binary check..."'
+                    sh '/usr/bin/buildctl-daemonless.sh --version'
+                    sh 'echo "Current User ID is:"'
+                    sh 'id'
                 }
             }
         }
