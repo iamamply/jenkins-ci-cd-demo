@@ -52,13 +52,19 @@ spec:
                         def FULL_IMAGE = "${env.DOCKER_IMAGE}:${env.IMAGE_TAG}"
                         
                         withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
-                            // *** เปลี่ยนเป็น Triple Single Quotes ทั้งหมด และใช้ $DOCKER_USER/$DOCKER_PASSWORD โดยตรงใน Bash ***
                             sh '''
-                                mkdir -p /home/user/.docker
                                 # ใช้ Bash Shell variable ในการสร้าง config.json
-                                echo '{"auths":{"index.docker.io/v1/": {"username":"$DOCKER_USER", "password":"$DOCKER_PASSWORD"}}}' > /home/user/.docker/config.json
+                                # Groovy จะไม่เข้ามาแทรกแซงตรงนี้แล้ว เพราะใช้ Triple Single Quotes
+                                mkdir -p /home/user/.docker
+                                echo '{"auths":{"index.docker.io/v1/": {"username":"$DOCKER_USER", "password":"$DOCKER_PASSWORD"}}}\' > /home/user/.docker/config.json
+                            '''
+                            
+                            // **ส่วน Buildctl: ใช้ Groovy Concatenation เพื่อหลีกเลี่ยง Groovy Interpolation**
+                            sh """
+                                FULL_IMAGE="${env.FULL_IMAGE}"
+                                CACHE_REPO="${env.CACHE_REPO}"
                                 
-                                echo "Starting BuildKit build for: ''' + FULL_IMAGE + '''"
+                                echo "Starting BuildKit build for: \${FULL_IMAGE}"
                                 
                                 /usr/bin/buildctl-daemonless.sh build \\
                                     --frontend=dockerfile.v0 \\
@@ -66,11 +72,11 @@ spec:
                                     --local dockerfile=Dockerfile \\
                                     --progress=plain \\
                                     \\
-                                    --output type=image,name=''' + FULL_IMAGE + ''',push=true \\
+                                    --output type=image,name=\${FULL_IMAGE},push=true \\
                                     \\
-                                    --import-cache type=registry,ref=''' + env.CACHE_REPO + ''':latest \\
-                                    --export-cache type=registry,ref=''' + env.CACHE_REPO + ''':latest
-                            '''
+                                    --import-cache type=registry,ref=\${CACHE_REPO}:latest \\
+                                    --export-cache type=registry,ref=\${CACHE_REPO}:latest
+                            """
                         }
                     }
                 }
