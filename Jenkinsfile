@@ -41,17 +41,16 @@ spec:
             steps { 
                 container(env.CONTAINER_NAME) { 
                     checkout scm 
-                    sh 'echo"stage 1"'
                 } 
             }
         }
 
-        stage('2. Build & Push Docker Image (BuildKit)') {
-            steps {
-                container(env.CONTAINER_NAME) {
-                    sh 'echo"stage 2"'
-                }
-            }    
-        }
+        // stage('2. Build & Push Docker Image (BuildKit)') {
+        //     steps {
+        //         container(env.CONTAINER_NAME) {
+        //             sh 'echo"stage 2"'
+        //         }
+        //     }    
+        // }
     }
 }
