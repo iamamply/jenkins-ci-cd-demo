@@ -32,12 +32,13 @@ pipeline {
 //     }
 
     environment {
-        // CONTAINER_NAME = "buildkit-agent" 
+        CONTAINER_NAME = "buildkit-agent" 
     }
 
     stages {
         stage('1. Agent Connectivity Test') {
             steps { 
+                sh 'echo "stage 1"'
                 // container(env.CONTAINER_NAME) {
                 //     sh 'echo "Agent Pod (BuildKit image) is connected." '
                 //     // sh 'id' // ควรเป็น uid=1000
@@ -47,6 +48,7 @@ pipeline {
         
         stage('2. SCM Checkout Test') {
             steps {
+                sh 'echo "stage 2"'
                 // container(env.CONTAINER_NAME) {
                 //     // checkout scm 
                 //     // sh 'ls -al' // ต้องเห็น Dockerfile
