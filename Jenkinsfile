@@ -1,50 +1,93 @@
 pipeline {
-    // agent any
-    agent {
-        kubernetes {
-            cloud 'kubernetes'
-            label 'jenkins-jenkins-agent' // ต้องตรงกับ Label ใน Pod Template ที่ตั้งค่าไว้
+  agent {
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: docker
+    image: docker:25-cli
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
+  volumes:
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
+"""
+    }
+  }
+
+  environment {
+      DOCKERHUB_CREDENTIAL_ID = 'dockerhub-credentials'
+  }
+
+  stages {
+    stage('Test Docker CLI') {
+      steps {
+        container('docker') {
+          echo "Checking Docker version..."
+          sh 'docker version'
+
+          echo "Listing Docker images in Minikube..."
+          sh 'docker images'
+        }
+      }
+    }
+
+    stage('1. Checkout Code') {
+        steps {
+            git url: 'https://github.com/iamamply/jenkins-ci-cd-demo.git', branch: 'main' 
         }
     }
 
-    environment {
-        // !!! 1. แก้ไขตรงนี้เป็น Username Docker Hub ของคุณ !!!
-        DOCKER_IMAGE = "iamamply@hotmail.com/ci-cd-app" 
-    }
+    stage('2. Build and Push Docker Image') {
+        steps {
+            script {
 
-    stages {
-        stage('1. Checkout Code') {
-            steps { checkout scm }
-        }
-        
-        stage('2. Build Docker Image') {
-            steps {
-                script {
-                    // กำหนด Tag เป็นเวลาปัจจุบัน (ใช้เป็นเวอร์ชัน Image)
-                    env.IMAGE_TAG = sh(returnStdout: true, script: 'date +%Y%m%d%H%M%S').trim()
-                    sh "docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} ."
+                def DOCKER_IMAGE = "iamamply/jenkins-ci-cd-demo" // เปลี่ยนเป็นชื่อ Docker Hub Repository ของคุณ
+                def IMAGE_TAG = "v${env.BUILD_NUMBER}"
+                def FULL_IMAGE_NAME = "${DOCKER_IMAGE}:${IMAGE_TAG}"
+
+                withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CREDENTIAL_ID, 
+                                                passwordVariable: 'DOCKER_PASSWORD', 
+                                                usernameVariable: 'DOCKER_USER')]) {
+                    
+                  container('docker') {
+                    // 1. ตรวจสอบการเชื่อมต่อ Docker
+                    sh 'echo "--- Verifying Docker Daemon Connection ---"'
+                    sh 'docker version'
+
+                    // 2. Docker Login
+                    sh 'echo "--- Attempting Docker Hub Login ---"'
+                    // ใช้ --password-stdin เพื่อให้ Password ไม่ปรากฏใน Log
+                    sh "echo \"${DOCKER_PASSWORD}\" | docker login -u ${DOCKER_USER} --password-stdin"
+
+                    sh 'echo "--- Login Successful! ---"'
+
+                    // sh "echo \":: Building Image ${FULL_IMAGE_NAME} ::\""
+                    sh "docker build -t ${FULL_IMAGE_NAME} ."
+
+                    // sh "echo \":: Pushing Image ${FULL_IMAGE_NAME} ::\""
+                    sh "docker push ${FULL_IMAGE_NAME}"
+
+                    sh 'docker logout'
+                  }
+
                 }
             }
         }
-
-        stage('3. Push Image to Docker Hub') {
-            steps {
-                // ใช้ ID 'docker-hub-credential' ที่เราสร้างไว้ใน Jenkins
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credential', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USER')]) {
-                    sh "echo \$DOCKER_PASSWORD | docker login -u \$DOCKER_USER --password-stdin"
-                    sh "docker push ${DOCKER_IMAGE}:${IMAGE_TAG}"
-                }
-            }
+    }   
+    stage('3. Deploy to Kubernetes') {
+        steps {
+          script {
+            echo "stage 3!"
+          }
         }
-        
-        stage('4. Deploy to Kubernetes') {
-            steps {
-                // 2. สั่ง K8s ดึง Image ใหม่: นี่คือ Continuous Delivery (CD)
-                sh "kubectl set image deployment/ci-cd-app-deployment ci-cd-app-container=${DOCKER_IMAGE}:${IMAGE_TAG}"
-                
-                // 3. รอให้ K8s อัปเดต Deployment เสร็จสมบูรณ์
-                sh "kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s"
-            }
-        }
-    }
+    } 
+  }
 }

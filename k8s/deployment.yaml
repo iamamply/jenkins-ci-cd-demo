@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins-demo-deployment
+  labels:
+    app: jenkins-demo
+spec:
+  replicas: 2 # จำนวน Pods ที่ต้องการรัน
+  selector:
+    matchLabels:
+      app: jenkins-demo
+  template:
+    metadata:
+      labels:
+        app: jenkins-demo # ต้องตรงกับ selector ใน Service
+    spec:
+      containers:
+      - name: demo-app-container
+        # *** ตำแหน่ง Placeholder ที่ Jenkins Pipeline จะมาแก้ไข ***
+        image: iamamply/jenkins-ci-cd-demo:v36 
+        ports:
+        - containerPort: 8080 # Port ที่แอปพลิเคชันคุณเปิดอยู่
