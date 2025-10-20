@@ -32,25 +32,25 @@ pipeline {
 //     }
 
     environment {
-        CONTAINER_NAME = "buildkit-agent" 
+        // CONTAINER_NAME = "buildkit-agent" 
     }
 
     stages {
         stage('1. Agent Connectivity Test') {
             steps { 
-                container(env.CONTAINER_NAME) {
-                    sh 'echo "Agent Pod (BuildKit image) is connected." '
-                    // sh 'id' // ควรเป็น uid=1000
-                }
+                // container(env.CONTAINER_NAME) {
+                //     sh 'echo "Agent Pod (BuildKit image) is connected." '
+                //     // sh 'id' // ควรเป็น uid=1000
+                // }
             }
         }
         
         stage('2. SCM Checkout Test') {
             steps {
-                container(env.CONTAINER_NAME) {
-                    // checkout scm 
-                    // sh 'ls -al' // ต้องเห็น Dockerfile
-                }
+                // container(env.CONTAINER_NAME) {
+                //     // checkout scm 
+                //     // sh 'ls -al' // ต้องเห็น Dockerfile
+                // }
             }
         }
     }
