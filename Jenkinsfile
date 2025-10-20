@@ -41,7 +41,13 @@ spec:
 
     stage('1. Checkout Code') {
         steps {
-            git url: 'https://github.com/iamamply/jenkins-ci-cd-demo.git', branch: 'main' 
+            git branch: 'main', 
+                credentialsId: 'git-credentials-id-if-needed', // ถ้า repo เป็น private
+                url: 'https://github.com/iamamply/jenkins-ci-cd-demo.git',
+                // *** เพิ่มพารามิเตอร์นี้เพื่อล้างและดึงใหม่ทั้งหมด ***
+                changelog: true, 
+                poll: false,
+                clean: true // บังคับให้ล้าง Workspace ก่อน Checkout
         }
     }
 
