@@ -61,6 +61,7 @@ spec:
                 }
             }
         }
+    }
            
         stage('3. Deploy to Kubernetes') {
             // หากไม่มี kubectl ต้องเปลี่ยน Container/Image ที่นี่
@@ -69,5 +70,5 @@ spec:
             //     sh "kubectl rollout status deployment/ci-cd-app-deployment --timeout=120s"
             // } }
         }
-    }
+    
 }
