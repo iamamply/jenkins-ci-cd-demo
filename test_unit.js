@@ -1,6 +1,6 @@
 const assert = require('assert');
 // ดึง Unit (requestHandler) ที่เราจะทดสอบจากไฟล์ server.js
-const { requestHandler } = require('./app'); 
+const requestHandler = require('./app'); 
 
 // ⭐️ Mock Class: จำลองการทำงานของ Response Object ⭐️
 class MockResponse {
