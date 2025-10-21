@@ -8,7 +8,10 @@
         "test": "mocha test_integration.js"
     },
     "dependencies": {
-        "express": "^4.18.2",
-        "http": "^0.0.1"
+        "express": "^4.18.2"
+    },
+    "devDependencies": {
+        "mocha": "^10.2.0",
+        "supertest": "^6.3.3"
     }
 }
