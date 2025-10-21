@@ -19,4 +19,4 @@ if (require.main === module) {
 }
 
 // ⭐️ Export requestHandler เพื่อให้ไฟล์ Test สามารถเรียกใช้ได้โดยตรง
-module.exports = { requestHandler };
+module.exports = requestHandler;
