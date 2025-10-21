@@ -2,7 +2,7 @@
 const request = require('supertest');
 const assert = require('assert');
 // ⭐️ ดึง requestHandler แทน server object ⭐️
-const requestHandler = require('./server'); 
+const requestHandler = require('./app'); 
 
 describe('Integration Test: Basic HTTP Server Endpoint', function() {
     this.timeout(5000); 
